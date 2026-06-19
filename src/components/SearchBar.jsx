@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function SearchBar({ onSearch, defaultValue = '', placeholder = 'Search GitHub username...' }) {
   const [value, setValue] = useState(defaultValue)
+
+  useEffect(() => { setValue(defaultValue) }, [defaultValue])
 
   function handleSubmit(e) {
     e.preventDefault()

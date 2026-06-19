@@ -25,6 +25,9 @@ import RepoScatterChart from './components/RepoScatterChart'
 import VsMode from './components/VsMode'
 import AiResume from './components/AiResume'
 import ContributedRepos from './components/ContributedRepos'
+import FeaturedProfiles from './components/FeaturedProfiles'
+import TrendingSection from './components/TrendingSection'
+import { prefetchRepo } from './services/githubService'
 
 function App() {
   const [dark, setDark] = useDarkMode()
@@ -34,12 +37,28 @@ function App() {
   const { commitsByDay, commitsByHour, loading: eventsLoading } = useUserEvents(username)
   const { repos: contributedRepos, loading: contributedLoading } = useContributedRepos(username)
 
+  const [showCompareTip, setShowCompareTip] = useState(
+    () => !localStorage.getItem('ghex:compare-tip-seen')
+  )
+
+  function dismissCompareTip() {
+    setShowCompareTip(false)
+    localStorage.setItem('ghex:compare-tip-seen', '1')
+  }
+
   const [compareMode, setCompareMode] = useState(() => Boolean(searchParams.get('vs')))
   const [username2, setUsername2] = useState(() => searchParams.get('vs') ?? '')
   const { user: user2, repos: repos2, languages: languages2, loading: loading2, error: error2 } = useGithubUser(username2)
 
   const compareRef = useRef(null)
   const scrollOnLoad2 = useRef(false)
+
+  // Auto-dismiss the compare tooltip 5 s after the first profile loads
+  useEffect(() => {
+    if (!user || !showCompareTip) return
+    const t = setTimeout(dismissCompareTip, 5000)
+    return () => clearTimeout(t)
+  }, [user, showCompareTip])
 
   // Scroll to the comparison section once user2 (or an error) resolves after an explicit search
   useEffect(() => {
@@ -140,22 +159,41 @@ function App() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <header className="max-w-6xl mx-auto px-4 pt-10 pb-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold">GitHub Profile Explorer</h1>
+          <h1 className="text-4xl font-bold">
+            <button
+              type="button"
+              onClick={() => handleSearch('')}
+              className="hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+            >
+              GitHub Profile Explorer
+            </button>
+          </h1>
           <div className="flex items-center gap-2">
             {user && (
-              <button
-                type="button"
-                onClick={toggleCompare}
-                aria-label={compareMode ? 'Exit compare mode' : 'Compare two profiles'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  compareMode
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <ArrowsRightLeftIcon className="w-4 h-4" aria-hidden="true" />
-                {compareMode ? 'Exit VS' : 'Compare'}
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => { dismissCompareTip(); toggleCompare() }}
+                  aria-label={compareMode ? 'Exit compare mode' : 'Compare two profiles'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    compareMode
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <ArrowsRightLeftIcon className="w-4 h-4" aria-hidden="true" />
+                  {compareMode ? 'Exit VS' : 'Compare'}
+                </button>
+
+                {showCompareTip && !compareMode && (
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                    <div className="relative bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl">
+                      <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-gray-900 dark:border-b-gray-700" />
+                      Compare two developers side by side!
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             <button
               type="button"
@@ -171,7 +209,7 @@ function App() {
           </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBar onSearch={handleSearch} defaultValue={searchParams.get('user') ?? ''} />
+          <SearchBar onSearch={handleSearch} defaultValue={username} />
           {compareMode && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-gray-300 dark:text-gray-600 select-none">VS</span>
@@ -187,7 +225,10 @@ function App() {
 
       <main className="max-w-6xl mx-auto px-4 pb-16">
         {!username && (
-          <p className="text-gray-400 mt-4">Search a GitHub username to get started.</p>
+          <>
+            <FeaturedProfiles onSelect={handleSearch} />
+            <TrendingSection />
+          </>
         )}
 
         {loading && (
@@ -236,7 +277,7 @@ function App() {
 
         {user && !loading && (
           <>
-            <ProfileCard user={user} repoCount={repos.length} />
+            <ProfileCard user={user} repoCount={repos.length} repos={repos} languages={languages} />
 
             <AiResume user={user} repos={repos} languages={languages} />
 
@@ -253,7 +294,7 @@ function App() {
             <div className="mt-8">
               {/* Featured: top 4 by stars — hidden when a filter is active */}
               {!hasActiveFilter && (
-                <FeaturedRepos repos={featured} onSelect={setSelectedRepo} />
+                <FeaturedRepos repos={featured} onSelect={setSelectedRepo} onPrefetch={prefetchRepo} />
               )}
 
               {/* Filter bar + directory */}
@@ -285,6 +326,7 @@ function App() {
                 <RepoTable
                   repos={directoryRepos}
                   onSelect={setSelectedRepo}
+                  onPrefetch={prefetchRepo}
                   title={hasActiveFilter ? 'Results' : 'All Repositories'}
                 />
               )}

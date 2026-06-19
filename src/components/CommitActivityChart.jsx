@@ -1,8 +1,10 @@
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts'
+import { useIsDark } from '../hooks/useIsDark'
 
 export default function CommitActivityChart({ data, loading, repoName }) {
+  const dark = useIsDark()
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm flex items-center justify-center h-full min-h-[260px]">
@@ -38,7 +40,12 @@ export default function CommitActivityChart({ data, loading, repoName }) {
           <XAxis dataKey="week" hide />
           <YAxis hide />
           <Tooltip
-            contentStyle={{ fontSize: '12px' }}
+            contentStyle={dark
+              ? { backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#f9fafb' }
+              : { backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12, color: '#111827' }
+            }
+            labelStyle={{ color: dark ? '#f9fafb' : '#111827', fontWeight: 600 }}
+            itemStyle={{ color: dark ? '#d1d5db' : '#6b7280' }}
             formatter={v => [v, 'commits']}
           />
           <Area

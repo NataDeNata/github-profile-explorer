@@ -10,7 +10,14 @@ export function useGithubUser(username) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!username) return
+    if (!username) {
+      setUser(null)
+      setRepos([])
+      setLanguages({})
+      setError(null)
+      setLoading(false)
+      return
+    }
 
     const controller = new AbortController()
     const { signal } = controller

@@ -14,10 +14,32 @@ const client = axios.create({
 // In-memory cache — survives re-renders, resets on page refresh
 const cache = new Map()
 
+const LS_PREFIX = 'ghex:'
+const LS_TTL = 10 * 60 * 1000 // 10 minutes
+
+function lsGet(key) {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key)
+    if (!raw) return null
+    const { data, ts } = JSON.parse(raw)
+    if (Date.now() - ts > LS_TTL) { localStorage.removeItem(LS_PREFIX + key); return null }
+    return data
+  } catch { return null }
+}
+
+function lsSet(key, data) {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify({ data, ts: Date.now() }))
+  } catch {} // QuotaExceededError — silently skip
+}
+
 function withCache(key, fn) {
   if (cache.has(key)) return Promise.resolve(cache.get(key))
+  const persisted = lsGet(key)
+  if (persisted !== null) { cache.set(key, persisted); return Promise.resolve(persisted) }
   return fn().then(data => {
     cache.set(key, data)
+    lsSet(key, data)
     return data
   })
 }
@@ -82,6 +104,34 @@ export const getRepo = (fullName) =>
   withCache(`repo:${fullName}`, () =>
     client.get(`/repos/${fullName}`).then(r => r.data)
   )
+
+export const getTrendingRepos = () => {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10)
+  return withCache('trending:week', () =>
+    client
+      .get('/search/repositories', {
+        params: { q: `created:>${since}`, sort: 'stars', order: 'desc', per_page: 6 },
+      })
+      .then(r => ({ items: r.data.items, totalCount: r.data.total_count }))
+  )
+}
+
+export const getMostStarredRepo = () =>
+  withCache('github:top-repo', () =>
+    client
+      .get('/search/repositories', {
+        params: { q: 'stars:>1', sort: 'stars', order: 'desc', per_page: 1 },
+      })
+      .then(r => r.data.items[0])
+  )
+
+// Fire-and-forget: warms the cache for all RepoModal tabs so opening feels instant
+export function prefetchRepo(owner, repo) {
+  getReadme(owner, repo).catch(() => {})
+  getCommitList(owner, repo).catch(() => {})
+  getContributors(owner, repo).catch(() => {})
+}
 
 // Fetches up to 300 public events (~90 days). Individual page failures return [].
 export const getUserEvents = (username, signal) =>

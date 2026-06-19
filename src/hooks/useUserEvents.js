@@ -26,7 +26,7 @@ export function useUserEvents(username) {
           .filter(e => e.type === 'PushEvent')
           .forEach(e => {
             const date = e.created_at.slice(0, 10)
-            const hour = new Date(e.created_at).getUTCHours()
+            const hour = new Date(e.created_at).getHours()
             const count = e.payload?.size ?? 1
 
             byDay[date] = (byDay[date] || 0) + count

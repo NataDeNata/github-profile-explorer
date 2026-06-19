@@ -1,24 +1,38 @@
 import { BarChart, Bar, XAxis, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { useIsDark } from '../hooks/useIsDark'
+
+const PERSONALITY_RANGES = [
+  { label: 'Night Owl',       hours: [22,23,0,1,2,3,4],  color: '#8b5cf6', badge: 'bg-violet-100  dark:bg-violet-900/30  text-violet-700  dark:text-violet-300',  desc: 'Highest commit density late at night' },
+  { label: 'Early Bird',      hours: [5,6,7,8,9],         color: '#f59e0b', badge: 'bg-amber-100   dark:bg-amber-900/30   text-amber-700   dark:text-amber-300',   desc: 'Highest commit density in the early morning' },
+  { label: 'Morning Coder',   hours: [10,11,12,13],       color: '#10b981', badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', desc: 'Highest commit density late morning to midday' },
+  { label: 'Afternoon Coder', hours: [14,15,16,17],       color: '#3b82f6', badge: 'bg-blue-100    dark:bg-blue-900/30    text-blue-700    dark:text-blue-300',    desc: 'Highest commit density in the afternoon' },
+  { label: 'Evening Coder',   hours: [18,19,20,21],       color: '#6366f1', badge: 'bg-indigo-100  dark:bg-indigo-900/30  text-indigo-700  dark:text-indigo-300',  desc: 'Highest commit density in the evening' },
+]
 
 function getPersonality(byHour) {
   const total = byHour.reduce((s, v) => s + v, 0)
   if (!total) return null
-  const peak = byHour.indexOf(Math.max(...byHour))
-  if (peak >= 22 || peak < 5)  return { label: 'Night Owl',       color: '#8b5cf6', badge: 'bg-violet-100  dark:bg-violet-900/30  text-violet-700  dark:text-violet-300',  desc: 'Most commits pushed late at night' }
-  if (peak < 10)               return { label: 'Early Bird',       color: '#f59e0b', badge: 'bg-amber-100   dark:bg-amber-900/30   text-amber-700   dark:text-amber-300',   desc: 'Most commits pushed in the morning' }
-  if (peak < 14)               return { label: 'Morning Coder',    color: '#10b981', badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', desc: 'Peak coding late morning' }
-  if (peak < 18)               return { label: 'Afternoon Coder',  color: '#3b82f6', badge: 'bg-blue-100    dark:bg-blue-900/30    text-blue-700    dark:text-blue-300',    desc: 'Most commits pushed in the afternoon' }
-                               return { label: 'Evening Coder',    color: '#6366f1', badge: 'bg-indigo-100  dark:bg-indigo-900/30  text-indigo-700  dark:text-indigo-300',  desc: 'Most commits pushed in the evening' }
+  return PERSONALITY_RANGES
+    .map(r => ({ ...r, score: r.hours.reduce((s, h) => s + (byHour[h] || 0), 0) }))
+    .reduce((best, r) => r.score > best.score ? r : best)
 }
 
 function hourLabel(h) {
-  if (h % 6 !== 0) return ''
   if (h === 0)  return '12am'
   if (h === 12) return '12pm'
-  return h < 12 ? `${h}am` : `${h - 12}pm`
+  if (h % 6 === 0) return h < 12 ? `${h}am` : `${h - 12}pm`
+  return ''
+}
+
+function hourTick(h) {
+  const n = Number(h)
+  return hourLabel(n)
 }
 
 export default function PeakHoursChart({ commitsByHour, loading }) {
+  // Hook must be called unconditionally — before any early returns
+  const dark = useIsDark()
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm flex items-center justify-center min-h-[220px]">
@@ -39,13 +53,11 @@ export default function PeakHoursChart({ commitsByHour, loading }) {
       </div>
     )
   }
-
   const personality = getPersonality(commitsByHour)
   const peakH = commitsByHour.indexOf(Math.max(...commitsByHour))
 
   const data = Array.from({ length: 24 }, (_, h) => ({
     h,
-    label: hourLabel(h),
     count: commitsByHour[h] || 0,
     peak: Math.abs(h - peakH) <= 1 || Math.abs(h - peakH) >= 23,
   }))
@@ -61,13 +73,14 @@ export default function PeakHoursChart({ commitsByHour, loading }) {
         )}
       </div>
       {personality && (
-        <p className="text-xs text-gray-400 mb-3">{personality.desc} · last 90 days (UTC)</p>
+        <p className="text-xs text-gray-400 mb-3">{personality.desc} · last 90 days (local time)</p>
       )}
       <ResponsiveContainer width="100%" height={160}>
         <BarChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: -24 }}>
           <XAxis
-            dataKey="label"
+            dataKey="h"
             tick={{ fontSize: 9, fill: '#9ca3af' }}
+            tickFormatter={hourTick}
             axisLine={false}
             tickLine={false}
             interval={0}
@@ -81,7 +94,12 @@ export default function PeakHoursChart({ commitsByHour, loading }) {
               if (h === 12) return '12:00 PM'
               return h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`
             }}
-            contentStyle={{ fontSize: '11px' }}
+            contentStyle={dark
+              ? { backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 11, color: '#f9fafb' }
+              : { backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 11, color: '#111827' }
+            }
+            labelStyle={{ color: dark ? '#f9fafb' : '#111827', fontWeight: 600 }}
+            itemStyle={{ color: dark ? '#d1d5db' : '#6b7280' }}
           />
           <Bar dataKey="count" radius={[2, 2, 0, 0]}>
             {data.map((d, i) => (

@@ -2,11 +2,12 @@ import { StarIcon } from '@heroicons/react/24/solid'
 import { langColor } from '../utils/langColors'
 import { formatNumber } from '../utils/format'
 
-function FeaturedCard({ repo, onSelect }) {
+function FeaturedCard({ repo, onSelect, onPrefetch }) {
   return (
     <button
       type="button"
       onClick={() => onSelect(repo)}
+      onMouseEnter={() => onPrefetch?.(repo.owner.login, repo.name)}
       className="w-full text-left group bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border-t-2 border-indigo-500 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-100 dark:hover:shadow-indigo-900/20 transition-all duration-200 flex flex-col gap-3"
     >
       {/* Name + star count */}
@@ -50,7 +51,7 @@ function FeaturedCard({ repo, onSelect }) {
   )
 }
 
-export default function FeaturedRepos({ repos, onSelect }) {
+export default function FeaturedRepos({ repos, onSelect, onPrefetch }) {
   if (!repos.length) return null
 
   return (
@@ -58,7 +59,7 @@ export default function FeaturedRepos({ repos, onSelect }) {
       <h3 className="font-semibold text-lg mb-4">Featured</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {repos.map(repo => (
-          <FeaturedCard key={repo.id} repo={repo} onSelect={onSelect} />
+          <FeaturedCard key={repo.id} repo={repo} onSelect={onSelect} onPrefetch={onPrefetch} />
         ))}
       </div>
     </section>
