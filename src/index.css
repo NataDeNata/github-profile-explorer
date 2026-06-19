@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+/* Enable class-based dark mode so JS can toggle it (vs. relying solely on prefers-color-scheme) */
+@variant dark (&:where(.dark, .dark *));
