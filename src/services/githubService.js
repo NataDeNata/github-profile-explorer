@@ -78,6 +78,11 @@ export const getContributors = (owner, repo, signal) =>
       .then(r => r.data)
   )
 
+export const getRepo = (fullName) =>
+  withCache(`repo:${fullName}`, () =>
+    client.get(`/repos/${fullName}`).then(r => r.data)
+  )
+
 // Fetches up to 300 public events (~90 days). Individual page failures return [].
 export const getUserEvents = (username, signal) =>
   withCache(`events:${username}`, async () => {

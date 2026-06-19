@@ -4,6 +4,7 @@ import { useGithubUser } from './hooks/useGithubUser'
 import { useRepoFilters } from './hooks/useRepoFilters'
 import { useDarkMode } from './hooks/useDarkMode'
 import { useUserEvents } from './hooks/useUserEvents'
+import { useContributedRepos } from './hooks/useContributedRepos'
 import { getCommitActivity } from './services/githubService'
 import { MagnifyingGlassIcon, ClockIcon, ExclamationTriangleIcon, FunnelIcon, SunIcon, MoonIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import SearchBar from './components/SearchBar'
@@ -23,6 +24,7 @@ import PeakHoursChart from './components/PeakHoursChart'
 import RepoScatterChart from './components/RepoScatterChart'
 import VsMode from './components/VsMode'
 import AiResume from './components/AiResume'
+import ContributedRepos from './components/ContributedRepos'
 
 function App() {
   const [dark, setDark] = useDarkMode()
@@ -30,6 +32,7 @@ function App() {
   const [username, setUsername] = useState(() => searchParams.get('user') ?? '')
   const { user, repos, languages, loading, error } = useGithubUser(username)
   const { commitsByDay, commitsByHour, loading: eventsLoading } = useUserEvents(username)
+  const { repos: contributedRepos, loading: contributedLoading } = useContributedRepos(username)
 
   const [compareMode, setCompareMode] = useState(() => Boolean(searchParams.get('vs')))
   const [username2, setUsername2] = useState(() => searchParams.get('vs') ?? '')
@@ -286,6 +289,8 @@ function App() {
                 />
               )}
             </div>
+
+            <ContributedRepos repos={contributedRepos} loading={contributedLoading} />
 
             {/* Developer DNA */}
             <div className="mt-10">
