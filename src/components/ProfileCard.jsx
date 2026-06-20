@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import { toPng } from 'html-to-image'
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { ArrowDownTrayIcon, MapPinIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
 import SnapshotCard from './SnapshotCard'
 
 export default function ProfileCard({ user, repoCount, repos = [], languages = {} }) {
@@ -28,18 +28,18 @@ export default function ProfileCard({ user, repoCount, repos = [], languages = {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm flex gap-6 items-start">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm flex gap-4 sm:gap-6 items-start">
         <img
           src={user.avatar_url}
           alt={user.name || user.login}
           loading="lazy"
-          className="w-24 h-24 rounded-full flex-shrink-0"
+          className="w-16 h-16 sm:w-24 sm:h-24 rounded-full flex-shrink-0"
         />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h2 className="text-2xl font-bold">{user.name || user.login}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold truncate">{user.name || user.login}</h2>
               <a
                 href={user.html_url}
                 target="_blank"
@@ -55,18 +55,18 @@ export default function ProfileCard({ user, repoCount, repos = [], languages = {
               onClick={handleDownload}
               disabled={downloading}
               title="Download stats card as PNG"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50 shrink-0"
             >
               <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
-              {downloading ? 'Generating…' : 'Download Card'}
+              <span className="hidden sm:inline">{downloading ? 'Generating…' : 'Download Card'}</span>
             </button>
           </div>
 
           {user.bio && (
-            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">{user.bio}</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm line-clamp-2 sm:line-clamp-none">{user.bio}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-sm text-gray-600 dark:text-gray-400">
             <span>
               <strong className="text-gray-900 dark:text-gray-100">
                 {user.followers.toLocaleString()}
@@ -82,14 +82,24 @@ export default function ProfileCard({ user, repoCount, repos = [], languages = {
             <span>
               <strong className="text-gray-900 dark:text-gray-100">{repoCount}</strong> repos
             </span>
-            {user.location && <span>📍 {user.location}</span>}
-            {user.company && <span>🏢 {user.company}</span>}
+            {user.location && (
+              <span className="flex items-center gap-1">
+                <MapPinIcon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {user.location}
+              </span>
+            )}
+            {user.company && (
+              <span className="flex items-center gap-1">
+                <BuildingOfficeIcon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                {user.company}
+              </span>
+            )}
             {user.blog && (
               <a
                 href={user.blog.startsWith('http') ? user.blog : `https://${user.blog}`}
                 target="_blank"
                 rel="noreferrer"
-                className="text-indigo-500 hover:underline"
+                className="text-indigo-500 hover:underline truncate max-w-[200px]"
               >
                 {user.blog}
               </a>

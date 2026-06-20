@@ -165,10 +165,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <header className="max-w-6xl mx-auto px-4 pt-10 pb-6">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-6">
-          <div />
-          <h1 className="text-4xl font-bold text-center">
+      <header className="max-w-6xl mx-auto px-4 pt-8 sm:pt-10 pb-6">
+        <div className="flex items-center justify-between gap-2 mb-6 sm:grid sm:grid-cols-[1fr_auto_1fr]">
+          <div className="hidden sm:block" />
+          <h1 className="text-2xl sm:text-4xl font-bold text-center">
             <button
               type="button"
               onClick={() => handleSearch('')}
@@ -225,12 +225,13 @@ function App() {
             typedPlaceholder={!username ? LANDING_PHRASES : ''}
           />
           {compareMode && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-gray-300 dark:text-gray-600 select-none">VS</span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-sm font-black text-gray-300 dark:text-gray-600 select-none shrink-0">VS</span>
               <SearchBar
                 onSearch={handleCompareSearch}
                 defaultValue={searchParams.get('vs') ?? ''}
                 placeholder="Compare with username..."
+                wide
               />
             </div>
           )}

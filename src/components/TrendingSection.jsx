@@ -1,4 +1,4 @@
-import { StarIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline'
+import { StarIcon, ArrowTopRightOnSquareIcon, FireIcon } from '@heroicons/react/24/outline'
 import { langColor } from '../utils/langColors'
 import { useTrending } from '../hooks/useTrending'
 
@@ -81,10 +81,10 @@ function SkeletonCard() {
   )
 }
 
-function StatPill({ emoji, value, label, href }) {
+function StatPill({ icon, value, label, href }) {
   const inner = (
     <div className="bg-white dark:bg-gray-800 rounded-xl px-5 py-3.5 shadow-sm flex items-center gap-3 h-full">
-      <span className="text-2xl leading-none shrink-0">{emoji}</span>
+      <span className="shrink-0 flex items-center">{icon}</span>
       <div className="min-w-0">
         <div className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
           {value}
@@ -149,13 +149,13 @@ export default function TrendingSection() {
         ) : (
           <>
             <StatPill
-              emoji="🔥"
+              icon={<FireIcon className="w-6 h-6 text-orange-500" />}
               value={fmtNum(totalCount)}
               label="new repos created this week"
             />
             {topRepo && (
               <StatPill
-                emoji="⭐"
+                icon={<StarIcon className="w-6 h-6 text-amber-400" />}
                 value={fmtNum(topRepo.stargazers_count)}
                 label={`all-time most starred · ${topRepo.name}`}
                 href={topRepo.html_url}
@@ -163,7 +163,7 @@ export default function TrendingSection() {
             )}
             {topLang && (
               <StatPill
-                emoji={<span className="w-6 h-6 rounded-full inline-block" style={{ background: langColor(topLang) }} />}
+                icon={<span className="w-5 h-5 rounded-full inline-block" style={{ background: langColor(topLang) }} />}
                 value={topLang}
                 label="hottest language this week"
               />
