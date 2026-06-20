@@ -1,5 +1,31 @@
-import { useState } from 'react'
-import { SparklesIcon, ArrowPathIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect, useRef } from 'react'
+import { SparklesIcon, ArrowPathIcon, ClipboardDocumentIcon, CheckIcon, ClockIcon } from '@heroicons/react/24/outline'
+
+const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+function getCached(login) {
+  try {
+    const raw = localStorage.getItem(`ghex:resume:${login}`)
+    if (!raw) return null
+    const { data, savedAt } = JSON.parse(raw)
+    if (Date.now() - savedAt > CACHE_TTL) {
+      localStorage.removeItem(`ghex:resume:${login}`)
+      return null
+    }
+    return data
+  } catch { return null }
+}
+
+function setCached(login, data) {
+  try {
+    localStorage.setItem(`ghex:resume:${login}`, JSON.stringify({ data, savedAt: Date.now() }))
+  } catch {}
+}
+
+function parseRetryDelay(msg) {
+  const m = msg?.match(/retry in (\d+(?:\.\d+)?)s/i)
+  return m ? Math.ceil(parseFloat(m[1])) : 0
+}
 
 function Skeleton() {
   return (
@@ -21,8 +47,29 @@ export default function AiResume({ user, repos, languages }) {
   const [result, setResult] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [copied, setCopied] = useState(false)
+  const [retryIn, setRetryIn] = useState(0)
+  const countdownRef = useRef(null)
+
+  // Load cache when the viewed user changes
+  useEffect(() => {
+    clearInterval(countdownRef.current)
+    setRetryIn(0)
+    const cached = getCached(user.login)
+    if (cached) {
+      setResult(cached)
+      setStatus('done')
+      setErrorMsg('')
+    } else {
+      setStatus('idle')
+      setResult(null)
+      setErrorMsg('')
+    }
+  }, [user.login])
+
+  useEffect(() => () => clearInterval(countdownRef.current), [])
 
   async function generate() {
+    if (status === 'loading' || retryIn > 0) return
     setStatus('loading')
     setErrorMsg('')
     try {
@@ -33,11 +80,22 @@ export default function AiResume({ user, repos, languages }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
+      setCached(user.login, data)
       setResult(data)
       setStatus('done')
     } catch (err) {
       setErrorMsg(err.message)
       setStatus('error')
+      const delay = parseRetryDelay(err.message)
+      if (delay > 0) {
+        setRetryIn(delay)
+        countdownRef.current = setInterval(() => {
+          setRetryIn(prev => {
+            if (prev <= 1) { clearInterval(countdownRef.current); return 0 }
+            return prev - 1
+          })
+        }, 1000)
+      }
     }
   }
 
@@ -48,6 +106,10 @@ export default function AiResume({ user, repos, languages }) {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const isRateLimited = retryIn > 0
+  const isLoading = status === 'loading'
+  const buttonDisabled = isLoading || isRateLimited
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden mt-6">
@@ -74,19 +136,24 @@ export default function AiResume({ user, repos, languages }) {
           <button
             type="button"
             onClick={generate}
-            disabled={status === 'loading'}
+            disabled={buttonDisabled}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              status === 'loading'
-                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-400 cursor-not-allowed'
+              buttonDisabled
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 : status === 'done'
                   ? 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
             }`}
           >
-            {status === 'loading' ? (
+            {isLoading ? (
               <>
                 <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                 Generating…
+              </>
+            ) : isRateLimited ? (
+              <>
+                <ClockIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                Retry in {retryIn}s
               </>
             ) : status === 'done' ? (
               <>
@@ -117,14 +184,13 @@ export default function AiResume({ user, repos, languages }) {
 
         {status === 'error' && (
           <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
-            <span className="font-semibold">Error:</span>
+            <span className="font-semibold shrink-0">Error:</span>
             <span>{errorMsg}</span>
           </div>
         )}
 
         {status === 'done' && result && (
           <div className="space-y-4">
-            {/* Project Spotlight callout */}
             {result.spotlight && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg px-4 py-3">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1 uppercase tracking-wide">
@@ -136,12 +202,10 @@ export default function AiResume({ user, repos, languages }) {
               </div>
             )}
 
-            {/* Paragraphs */}
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.paragraph1}</p>
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.paragraph2}</p>
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.paragraph3}</p>
 
-            {/* Footer attribution */}
             <div className="pt-1 flex items-center justify-end gap-1.5">
               <SparklesIcon className="w-3 h-3 text-gray-300 dark:text-gray-600" aria-hidden="true" />
               <span className="text-xs text-gray-300 dark:text-gray-600">Powered by Gemini 2.5 Flash</span>

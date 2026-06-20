@@ -2,3 +2,8 @@
 @plugin "@tailwindcss/typography";
 /* Enable class-based dark mode so JS can toggle it (vs. relying solely on prefers-color-scheme) */
 @variant dark (&:where(.dark, .dark *));
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

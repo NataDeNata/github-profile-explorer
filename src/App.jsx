@@ -27,7 +27,15 @@ import AiResume from './components/AiResume'
 import ContributedRepos from './components/ContributedRepos'
 import FeaturedProfiles from './components/FeaturedProfiles'
 import TrendingSection from './components/TrendingSection'
+import HostCard from './components/HostCard'
 import { prefetchRepo } from './services/githubService'
+
+const LANDING_PHRASES = [
+  "Search a developer's profile...",
+  "Type any GitHub username...",
+  "Explore a repository...",
+  "Explore any developer's open-source impact, star history, and more.",
+]
 
 function App() {
   const [dark, setDark] = useDarkMode()
@@ -158,8 +166,9 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <header className="max-w-6xl mx-auto px-4 pt-10 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-6">
+          <div />
+          <h1 className="text-4xl font-bold text-center">
             <button
               type="button"
               onClick={() => handleSearch('')}
@@ -168,7 +177,7 @@ function App() {
               GitHub Profile Explorer
             </button>
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             {user && (
               <div className="relative">
                 <button
@@ -209,7 +218,12 @@ function App() {
           </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <SearchBar onSearch={handleSearch} defaultValue={username} />
+          <SearchBar
+            onSearch={handleSearch}
+            defaultValue={username}
+            wide={!username}
+            typedPlaceholder={!username ? LANDING_PHRASES : ''}
+          />
           {compareMode && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-gray-300 dark:text-gray-600 select-none">VS</span>
@@ -228,6 +242,7 @@ function App() {
           <>
             <FeaturedProfiles onSelect={handleSearch} />
             <TrendingSection />
+            <HostCard onViewProfile={handleSearch} />
           </>
         )}
 
